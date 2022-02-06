@@ -1,0 +1,16 @@
+# Miscellaneous
+*.class
+*.log
+*.pyc
+*.swp
+.DS_Store
+.atom/
+.buildlog/
+.history
+.svn/
+
+# Environment file
+.env
+
+# Cache
+__pycache__
