@@ -1,12 +1,11 @@
 import sys
 
-import data_scraper as dc
 import common_utils as cu
 
 
 class DataCleaner():
     def __init__(self):
-        pass
+        self.logger = cu.create_log()
 
     def clean_raw_data(self):
         pass
@@ -30,10 +29,9 @@ class CovidCleaner(DataCleaner):
             actives_today = [int(clean_records[i].replace(".", "").replace("+", "")) for i in range(2, len(clean_records), 7)]
             deaths = [int(clean_records[i].replace(".", "")) for i in range(4, len(clean_records), 7)]
             deaths_today = [int(clean_records[i].replace(".", "")) for i in range(5, len(clean_records), 7)]
-            print("> Records are cleaned.\n")
-        except Exception as e:
-            print(f"Error while cleaning raw data : ", e)
-            sys.exit(-2)
+            self.logger.info("> Records are cleaned.\n")
+        except:
+            self.logger.error(f"Error while cleaning raw data : " + " Error: " + str(sys.exc_info()[0]))
 
         return cities, actives, actives_today, deaths, deaths_today
 
@@ -46,10 +44,9 @@ class CovidCleaner(DataCleaner):
             dates = [cu.get_current_date() for i in range(len(raw_records))]
             # Create a list of IDs for the records
             ids = [i for i in range(1, len(raw_records)+1)]
-            print("> IDs and dates are created for clean records.\n")
-        except Exception as e:
-            print("Error while creating IDs and dates for clean records : ", e)
-            sys.exit(-2)
+            self.logger.info("> IDs and dates are created for clean records.\n")
+        except:
+            self.logger.error("Error while creating IDs and dates for clean records : " + " Error: " + str(sys.exc_info()[0]))
 
         return ids, dates
 
@@ -62,9 +59,9 @@ class CovidCleaner(DataCleaner):
         
         try:
             clean_records = list(zip(ids, dates, cities, actives, actives_today, deaths, deaths_today))
-            print("> Records are ready for data ingestion.\n")
+            self.logger.info("> Records are ready for data ingestion.\n")
         except Exception as e:
-            print("Error while finalizing records for data ingestion : ", e)
+            self.logger.error("Error while finalizing records for data ingestion : " + " Error: " + str(sys.exc_info()[0]))
 
         return clean_records
 

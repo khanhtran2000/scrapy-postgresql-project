@@ -12,6 +12,7 @@ load_dotenv()
 
 class DataIngester():
     def __init__(self):
+        self.logger = cu.create_log()
         self.user = os.getenv("DB_USER")
         self.password = os.getenv("PASSWORD")
         self.host = os.getenv("HOST")
@@ -23,46 +24,40 @@ class DataIngester():
         '''
         try:
             return self.user
-        except Exception as e:
-            print("Error while reading the database user : ", e)
-            sys.exit(-2)
-
+        except:
+            self.logger.error("Error while reading the database user : " + " Error: " + str(sys.exc_info()[0]))
     
     def get_password(self):
         '''Return database password.
         '''
         try:
             return self.password
-        except Exception as e:
-            print("Error while reading the database password : ", e)
-            sys.exit(-2)
+        except:
+            self.logger.error("Error while reading the database password : " + " Error: " + str(sys.exc_info()[0]))
 
     def get_host(self):
         '''Return database host.
         '''
         try:
             return self.host
-        except Exception as e:
-            print("Error while reading the database host : ", e)
-            sys.exit(-2)
+        except:
+            self.logger.error("Error while reading the database host : " + " Error: " + str(sys.exc_info()[0]))
 
     def get_port(self):
         '''Return database port.
         '''
         try:
             return self.port
-        except Exception as e:
-            print("Error while reading the database port : ", e)
-            sys.exit(-2)
+        except:
+            self.logger.error("Error while reading the database port : " + " Error: " + str(sys.exc_info()[0]))
 
     def get_database(self):
         '''Return database name.
         '''
         try:
             return self.database
-        except Exception as e:
-            print("Error while reading the database name : ", e)
-            sys.exit(-2)
+        except:
+            self.logger.error("Error while reading the database name : " + " Error: " + str(sys.exc_info()[0]))
     
     def connect_to_postgres(self):
         '''Create a connection to the given database.
@@ -80,22 +75,18 @@ class DataIngester():
 
 
 class CovidIngester(DataIngester):
-    def ingest(self):
+    def ingest(self, clean_records: list):
         '''Update new scraped covid data into the table.
         '''
         # Connect
         connection = self.connect_to_postgres()
-        # Scrape
-        scraper = ds.CovidScraper()
-        raw_records = scraper.scrape_data()
-        # Clean
-        cleaner = dc.CovidCleaner()
-        clean_records = cleaner.get_clean_records(raw_records=raw_records)
         # Ingest
         for re in clean_records:
             cu.run_insert_query(connection=connection, run_type=cu.COVID_RT, records_to_insert=re)
         
         connection.close()
+
+        self.logger.info("> PostgreSQL connection is closed.")
 
 
 class OtherIngester(DataIngester):
