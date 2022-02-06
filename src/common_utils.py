@@ -2,13 +2,71 @@ from bs4 import BeautifulSoup
 from selenium import webdriver
 import psycopg2
 import sys
+import os
+import logging
+from logging.handlers import WatchedFileHandler
 from datetime import datetime
 
 
+logger = None
 # Run types
 COVID_RT = "covid"
 # Table names
 COVID_TABLE_NAME = "covid_data_tbl"
+
+
+#--------------- Logging utilities ---------------#
+
+def create_log(path=None):
+    '''Create a log file with default level at INFO.
+    '''
+    global logger
+
+    if logger is not None:
+        return logger
+
+    if path is None:
+        path = get_log_file_path()
+
+    handler = WatchedFileHandler(os.environ.get("LOGFILE", path))
+    formatter = logging.Formatter(logging.BASIC_FORMAT)
+    handler.setFormatter(formatter)
+    logger = logging.getLogger("PipelineLog")
+    logger.addHandler(handler)
+    logger.setLevel(logging.INFO)
+
+    return logger
+
+
+def get_abs_root_path():
+    '''Get absoulate root path.
+    '''
+    return os.path.abspath(os.path.dirname(__file__))
+
+
+def get_log_file_path():
+    '''Get log file path. Create on if not exist.
+    '''
+    logs_folder_path = os.path.join(get_abs_root_path(), r"../logs/")
+    if not os.path.isdir(logs_folder_path):
+        os.mkdir(logs_folder_path)  # create path if not found
+
+    log_file_path = os.path.join(logs_folder_path, r"pipeline.log")
+    if not os.path.isfile(log_file_path):
+        open(log_file_path, 'w').close()  # create file if not found
+
+    return log_file_path
+
+
+def get_logger():
+    '''Create logger.
+    '''
+    global logger
+    if logger is None:
+        logger = create_log()
+    return logger
+
+#--------------- End of Logging utilities ---------------#
 
 
 def create_soup(url: str, chrome_path: str) -> BeautifulSoup:
@@ -24,8 +82,7 @@ def create_soup(url: str, chrome_path: str) -> BeautifulSoup:
         html = driver.page_source
         soup = BeautifulSoup(html,'lxml')
     except Exception as e:
-        print("Error creating BeautifulSoup object : ", e)
-        sys.exit(-2)
+        get_logger().error(f"Error while creating BeautifulSoup object for url {url}: "  + " Error: " + str(sys.exc_info()[0]))
 
     return soup
 
@@ -51,10 +108,9 @@ def create_postgres_connection(user: str, password: str, host: str, port: str, d
                                       host=host,
                                       port=port,
                                       database=database)
-        print("> PostgreSQL connection is created.\n")
-    except Exception as e:
-        print("Error while connecting to PostgreSQL database : ", e)
-        sys.exit(-2)
+        get_logger().info("> PostgreSQL connection is created.\n")
+    except:
+        get_logger().error("Error while connecting to PostgreSQL database : " + " Error: " + str(sys.exc_info()[0]))
 
     return connection
 
@@ -66,9 +122,9 @@ def get_table_name(run_type: str):
     try:
         if run_type == COVID_RT:
             table_name = COVID_TABLE_NAME
-    except Exception as e:
-        print(f"Error while getting table name for runtype {run_type} : ", e)
-        sys.exit(-2)
+    except:
+        get_logger().error(f"Error while getting table name for runtype {run_type} : " + " Error: " + str(sys.exc_info()[0]))
+
     return table_name
 
 
@@ -80,9 +136,8 @@ def build_insert_query(table_name: str, records_to_insert: tuple):
     '''
     try:
         insert_query = f"""INSERT INTO {table_name} VALUES {records_to_insert}"""
-    except Exception as e:
-        print(f"Error while building insert query for table {table_name} : ", e)
-        sys.exit(-2)
+    except:
+        get_logger().error(f"Error while building insert query for table {table_name} : " + " Error: " + str(sys.exc_info()[0]))
 
     return insert_query
 
@@ -112,10 +167,9 @@ def run_insert_query(connection: psycopg2.extensions.connection, run_type: str, 
     try:
         cursor.execute(insert_query, records_to_insert)
         connection.commit()
-        print(f"Successfully ingested record {records_to_insert} into table {table_name}.\n")
-    except Exception as e:
-        print(f"Error while trying to insert records into table {table_name} : ", e)
-        sys.exit(-2)
+        get_logger().info(f"Successfully ingested record {records_to_insert} into table {table_name}.\n")
+    except:
+        get_logger().error(f"Error while trying to insert records into table {table_name} : " + " Error: " + str(sys.exc_info()[0]))
 
 
 def run_delete_query(connection: psycopg2.extensions.connection, run_type: str):
