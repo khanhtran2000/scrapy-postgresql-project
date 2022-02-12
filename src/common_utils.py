@@ -132,7 +132,8 @@ def get_table_name(run_type: str):
 
 def build_insert_query(table_name: str, records_to_insert: tuple):
     '''Build query for INSERT statement
-    :param records_to_insert:
+    :param table_name: name of the table
+    :param records_to_insert: records to insert into the given table
     '''
     try:
         insert_query = f"""INSERT INTO {table_name} VALUES {records_to_insert}"""
@@ -146,8 +147,16 @@ def build_delete_query(table_name: str):
     pass
 
 
-def build_select_query(table_name: str):
-    pass
+def build_select_query(table_name: str, fields: str):
+    '''Build query for SELECT statement
+    :param table_name: name of the table
+    :param fields: fields want to be selected from the given table
+    '''
+    try:
+        select_query = f"SELECT {fields} FROM {table_name}"
+    except:
+        get_logger().error(f"Error while building select query for table {table_name} : " + " Error: " + str(sys.exc_info()[0]))
+
 
 #--------------- End of Build queries ---------------#
 
