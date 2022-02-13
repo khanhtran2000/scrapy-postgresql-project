@@ -1,4 +1,6 @@
 import sys
+import psycopg2
+import os
 
 import common_utils as cu
 
@@ -6,6 +8,63 @@ import common_utils as cu
 class DataCleaner():
     def __init__(self):
         self.logger = cu.create_log()
+        self.rt = cu.COVID_RT
+        self.user = os.getenv("DB_USER")
+        self.password = os.getenv("PASSWORD")
+        self.host = os.getenv("HOST")
+        self.port = os.getenv("PORT")
+        self.database = os.getenv("DATABASE")
+
+    def get_user(self):
+        '''Return database user.
+        '''
+        try:
+            return self.user
+        except:
+            self.logger.error("Error while reading the database user : " + " Error: " + str(sys.exc_info()[0]))
+    
+    def get_password(self):
+        '''Return database password.
+        '''
+        try:
+            return self.password
+        except:
+            self.logger.error("Error while reading the database password : " + " Error: " + str(sys.exc_info()[0]))
+
+    def get_host(self):
+        '''Return database host.
+        '''
+        try:
+            return self.host
+        except:
+            self.logger.error("Error while reading the database host : " + " Error: " + str(sys.exc_info()[0]))
+
+    def get_port(self):
+        '''Return database port.
+        '''
+        try:
+            return self.port
+        except:
+            self.logger.error("Error while reading the database port : " + " Error: " + str(sys.exc_info()[0]))
+
+    def get_database(self):
+        '''Return database name.
+        '''
+        try:
+            return self.database
+        except:
+            self.logger.error("Error while reading the database name : " + " Error: " + str(sys.exc_info()[0]))
+
+    def connect_to_postgres(self):
+        '''Create a connection to the given database.
+        '''
+        connection = cu.create_postgres_connection(user=self.get_user(),
+                                                password=self.get_password(),
+                                                host=self.get_host(),
+                                                port=self.get_port(),
+                                                database=self.get_database())
+
+        return connection
 
     def clean_raw_data(self):
         pass
@@ -43,7 +102,9 @@ class CovidCleaner(DataCleaner):
             # Get date of the scrape
             dates = [cu.get_current_date() for i in range(len(raw_records))]
             # Create a list of IDs for the records
-            ids = [i for i in range(1, len(raw_records)+1)]
+            max_id = cu.run_select_query(connection=self.connect_to_postgres(), run_type=self.rt, fields="MAX(id)")[0][0]
+
+            ids = [i for i in range(max_id+1, max_id+len(raw_records)+1)]
             self.logger.info("> IDs and dates are created for clean records.\n")
         except:
             self.logger.error("Error while creating IDs and dates for clean records : " + " Error: " + str(sys.exc_info()[0]))

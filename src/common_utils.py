@@ -156,6 +156,8 @@ def build_select_query(table_name: str, fields: str):
         select_query = f"SELECT {fields} FROM {table_name}"
     except:
         get_logger().error(f"Error while building select query for table {table_name} : " + " Error: " + str(sys.exc_info()[0]))
+    
+    return select_query
 
 
 #--------------- End of Build queries ---------------#
@@ -166,7 +168,7 @@ def build_select_query(table_name: str, fields: str):
 def run_insert_query(connection: psycopg2.extensions.connection, run_type: str, records_to_insert: tuple):
     '''Execute the insert records query into PostgreSQL table.
     :param connection:
-    :param table_name:
+    :param run_type:
     :param records_to_insert:
     '''
     cursor = connection.cursor()
@@ -174,18 +176,39 @@ def run_insert_query(connection: psycopg2.extensions.connection, run_type: str, 
     insert_query = build_insert_query(table_name=table_name, records_to_insert=records_to_insert)
 
     try:
-        cursor.execute(insert_query, records_to_insert)
+        cursor.execute(insert_query)
         connection.commit()
         get_logger().info(f"Successfully ingested record {records_to_insert} into table {table_name}.\n")
     except:
-        get_logger().error(f"Error while trying to insert records into table {table_name} : " + " Error: " + str(sys.exc_info()[0]))
+        get_logger().error(f"Error while trying to insert records into table : {table_name} " + " Error: " + str(sys.exc_info()[0]))
+    # finally:
+    #     cursor.close()
+    #     connection.close()
 
 
 def run_delete_query(connection: psycopg2.extensions.connection, run_type: str):
     pass
 
 
-def run_select_query(connection: psycopg2.extensions.connection, run_type: str):
-    pass
+def run_select_query(connection: psycopg2.extensions.connection, run_type: str, fields: str):
+    '''Execute the select query into PostgreSQL table.
+    :param connection:
+    :param run_type:
+    :param fields: field to be selected
+    '''
+    cursor = connection.cursor()
+    table_name = get_table_name(run_type=run_type)
+    select_query = build_select_query(table_name=table_name, fields=fields)
+
+    try:
+        results = cursor.execute(select_query)
+        results = cursor.fetchall()
+        get_logger().info(f"Successfully select {fields} from {table_name}.\n")
+        return results
+    except:
+        get_logger().error(f"Error while trying to select {fields} from {table_name} : " + " Error: " + str(sys.exc_info()[0]))
+    # finally:
+    #     cursor.close()
+    #     connection.close()
 
 #--------------- End of Run queries ---------------#
